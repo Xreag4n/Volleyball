@@ -1,23 +1,321 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Volleyball</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Memorama Psicología</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #111;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #found-pairs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      min-height: 160px;
+      border: 2px dashed #888;
+      padding: 10px;
+    }
+
+    #game {
+      display: grid;
+      grid-template-columns: repeat(4, 120px); /* 4 columnas para mejor legibilidad */
+      gap: 15px;
+      justify-content: center;
+      margin: 0 auto;
+    }
+
+    .card {
+      width: 120px;
+      height: 160px;
+      perspective: 800px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .card-front {
+      background-color: #fff;
+      color: #000;
+      transform: rotateY(180deg);
+    }
+
+    .card-back {
+      background-color: #444;
+      color: #ccc;
+      font-size: 32px;
+    }
+
+    #attempts {
+      margin-top: 10px;
+    }
+
+    #reset {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #f44336;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #reset:hover {
+      background-color: #d32f2f;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background-color: #222;
+      padding: 20px;
+      border-radius: 10px;
+      position: relative;
+      width: 300px;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-    <p>integrantes:</p>
-    <li>Alcantara Vasquez Allison</li>
-    <li>Crisostomo Sandoval Crystal</li>
-    <li>De Jesus Ramos Marisol</li>
-    <li>Martinez Francisco Aylin</li>
-    <li>Nuñez Aguilar Reagan</li>
-    <li>Perez Martines Michelle</li>
-    <li>Rosales De Jesus Perla</li>
-    <li>Sanchez Olmedo Johann Rafael</li>
-    <p>Semestre: Cuarto2025-A</p>
-    <p>Materia: Promocion deportiva</p>
-    <p>Deporte: Volleyball</p>
-    <p>Fecha de entrega:27 de marzo de 2025</p>
+
+  <h1>Memorama Psicología</h1>
+  <div id="found-pairs">🧠 Pares encontrados:</div>
+  <div id="game"></div>
+  <div id="attempts">Intentos: 0</div>
+  <button id="reset">Reiniciar juego</button>
+
+  <!-- Modal -->
+  <div id="definitionModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" id="closeModal">✖</span>
+      <h2>Definición</h2>
+      <p>Esta es una definición de ejemplo para el par encontrado.</p>
+    </div>
+  </div>
+
+  <script>
+    const CONCEPTS = [
+      "psique",
+      "platon",
+      "aristoteles",
+      "hipocrates",
+      "socrates",
+      "rene descartes",
+      "humanismo",
+      "neurociencia conductual",
+      "psicologia vocacional"
+    ];
+
+    const DEFINITIONS = {
+      "psique": "Término griego que hace referencia al alma o mente humana.",
+      "platon": "Filósofo griego que propuso la existencia de un mundo de las ideas.",
+      "aristoteles": "Filósofo griego que estudió la mente como parte del cuerpo.",
+      "hipocrates": "Padre de la medicina, relacionó enfermedades con desequilibrios corporales.",
+      "socrates": "Filósofo griego que enfatizó el conocimiento propio como fuente de sabiduría.",
+      "rene descartes": "Filósofo que propuso la dualidad mente-cuerpo (dualismo).",
+      "humanismo": "Corriente psicológica que destaca el potencial humano y la autorrealización.",
+      "neurociencia conductual": "Estudia la relación entre el cerebro y el comportamiento.",
+      "psicologia vocacional": "Área que ayuda a las personas a encontrar su orientación profesional."
+    };
+
+    const NUM_PAIRS = CONCEPTS.length;
+    const gameContainer = document.getElementById("game");
+    const foundPairsContainer = document.getElementById("found-pairs");
+    const attemptsDisplay = document.getElementById("attempts");
+    const resetButton = document.getElementById("reset");
+
+    const modal = document.getElementById("definitionModal");
+    const closeModal = document.getElementById("closeModal");
+
+    let cardValues = [];
+    let flippedCards = [];
+    let matchedCards = [];
+    let attempts = 0;
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function createCards() {
+      cardValues = [];
+      CONCEPTS.forEach(concept => {
+        cardValues.push(concept, concept); // 2 cartas por cada concepto
+      });
+      shuffle(cardValues);
+
+      gameContainer.innerHTML = "";
+      foundPairsContainer.innerHTML = "🧠 Pares encontrados:";
+      matchedCards = [];
+      flippedCards = [];
+      attempts = 0;
+      updateAttempts();
+
+      cardValues.forEach((value, index) => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.dataset.value = value;
+        card.dataset.index = index;
+
+        const cardInner = document.createElement("div");
+        cardInner.classList.add("card-inner");
+
+        const cardFront = document.createElement("div");
+        cardFront.classList.add("card-front");
+        cardFront.textContent = value;
+
+        const cardBack = document.createElement("div");
+        cardBack.classList.add("card-back");
+        cardBack.textContent = "🂠";
+
+        cardInner.appendChild(cardFront);
+        cardInner.appendChild(cardBack);
+        card.appendChild(cardInner);
+
+        card.addEventListener("click", () => handleCardClick(card));
+        gameContainer.appendChild(card);
+      });
+    }
+
+    function handleCardClick(card) {
+      if (card.classList.contains("flipped") || flippedCards.length === 2) return;
+
+      card.classList.add("flipped");
+      flippedCards.push(card);
+
+      if (flippedCards.length === 2) {
+        attempts++;
+        updateAttempts();
+        checkForMatch();
+      }
+    }
+
+    function checkForMatch() {
+      const [card1, card2] = flippedCards;
+
+      if (card1.dataset.value === card2.dataset.value) {
+        matchedCards.push(card1, card2);
+        moveToFoundPairs(card1.dataset.value);
+        flippedCards = [];
+
+        showDefinitionModal(card1.dataset.value);
+
+        if (matchedCards.length === NUM_PAIRS * 2) {
+          setTimeout(() => alert("🎉 ¡Felicidades! Has ganado."), 500);
+        }
+      } else {
+        setTimeout(() => {
+          card1.classList.remove("flipped");
+          card2.classList.remove("flipped");
+          flippedCards = [];
+        }, 1000);
+      }
+    }
+
+    function moveToFoundPairs(value) {
+      const pairDiv = document.createElement("div");
+      pairDiv.style.width = "120px";
+      pairDiv.style.height = "160px";
+      pairDiv.style.background = "#4caf50";
+      pairDiv.style.borderRadius = "8px";
+      pairDiv.style.color = "#fff";
+      pairDiv.style.fontSize = "16px";
+      pairDiv.style.display = "flex";
+      pairDiv.style.alignItems = "center";
+      pairDiv.style.justifyContent = "center";
+      pairDiv.style.padding = "10px";
+      pairDiv.style.textAlign = "center";
+      pairDiv.textContent = value;
+      foundPairsContainer.appendChild(pairDiv);
+    }
+
+    function updateAttempts() {
+      attemptsDisplay.textContent = `Intentos: ${attempts}`;
+    }
+
+    function showDefinitionModal(value) {
+      modal.querySelector("p").textContent = DEFINITIONS[value] || `Definición no disponible para ${value}`;
+      modal.style.display = "flex";
+    }
+
+    closeModal.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+
+    resetButton.addEventListener("click", () => {
+      modal.style.display = "none";
+      createCards();
+    });
+
+    window.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        modal.style.display = "none";
+      }
+    });
+
+    createCards();
+  </script>
 </body>
 </html>
